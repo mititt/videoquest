@@ -44,7 +44,7 @@ javascript:(()=>{
     const rem = Math.max(0, video.duration - video.currentTime);
     const pred = predictedRemaining(rem);
     const curRate = video.playbackRate;
-    overlay.textContent = `速度: ${curRate.toFixed(1)}x | 残り(映像): ${rem.toFixed(1)}s | 残り: ${pred.toFixed(1)}s`;
+    overlay.textContent = `速度: ${curRate.toFixed(1)}x | 残り(映像): ${rem.toFixed(1)}s | 予想残り: ${pred.toFixed(1)}s`;
   }
 
   function adjustPlaybackRate(){
