@@ -3,6 +3,7 @@ javascript:(()=>{
   const normalRate = 1.0;
   const threshold = 5.0;
   const hideDelayMs = 3000;
+  const loadingTimeoutMs = 5000; 
 
   const video = Array.from(document.querySelectorAll("video"))
     .find(v => v.className.includes("videoInner_") && v.poster && v.poster.includes("quests"));
@@ -29,25 +30,37 @@ javascript:(()=>{
 
   let hideTimeout = null;
   let interval = null;
+  let finished = false;  
+  let loadingSince = null;
 
-  function predictedRemaining(remainingVideoSec){
-    if(!isFinite(remainingVideoSec)) return Infinity;
-    if(remainingVideoSec <= threshold) return remainingVideoSec / normalRate;
-    return (remainingVideoSec - threshold) / fastRate + threshold / normalRate;
+  function predictedRemaining(r){
+    if(!isFinite(r)) return Infinity;
+    if(r <= threshold) return r / normalRate;
+    return (r - threshold) / fastRate + threshold / normalRate;
   }
 
   function updateOverlay(){
+    if(finished) return; 
     if(!isFinite(video.duration)){
       overlay.textContent = "読み込み中...";
+
+      if(loadingSince === null) loadingSince = Date.now();
+      else if(Date.now() - loadingSince > loadingTimeoutMs){
+        finish("動画が見つかりませんでした");
+      }
       return;
     }
+    loadingSince = null;
+
     const rem = Math.max(0, video.duration - video.currentTime);
     const pred = predictedRemaining(rem);
     const curRate = video.playbackRate;
-    overlay.textContent = `速度: ${curRate.toFixed(1)}x | 残り(映像): ${rem.toFixed(1)}s | 予想残り: ${pred.toFixed(1)}s`;
+    overlay.textContent =
+      `速度: ${curRate.toFixed(1)}x | 残り(映像): ${rem.toFixed(1)}s | 予想残り: ${pred.toFixed(1)}s`;
   }
 
   function adjustPlaybackRate(){
+    if(finished) return;
     if(!isFinite(video.duration)) return;
     const rem = Math.max(0, video.duration - video.currentTime);
     const want = rem <= threshold ? normalRate : fastRate;
@@ -56,9 +69,18 @@ javascript:(()=>{
   }
 
   function onEnded(){
-    overlay.textContent = "完了";
+    finish("完了");
+  }
+
+  function finish(msg){
+    if(finished) return;
+    finished = true;
+    overlay.textContent = msg;
     if(hideTimeout) clearTimeout(hideTimeout);
-    hideTimeout = setTimeout(()=>{ cleanup(); if(overlay) overlay.remove(); }, hideDelayMs);
+    hideTimeout = setTimeout(()=>{
+      cleanup();
+      if(overlay) overlay.remove();
+    }, hideDelayMs);
   }
 
   function cleanup(){
